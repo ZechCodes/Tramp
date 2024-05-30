@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "tramp"
+version = "0.1.1"
+description = "No idea but we have a result type!"
+authors = ["Zech Zimmerman <hi@zech.codes>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
