@@ -67,7 +67,10 @@ class Annotation:
         if self.is_type():
             return self.annotation
 
-        return self.args[0]
+        if self.args:
+            return self.args[0]
+
+        return self.annotation
 
     def is_annotated(self) -> bool:
         return self.origin is Annotated
