@@ -59,7 +59,7 @@ class Annotation:
     @property
     def type(self) -> Type[Any]:
         if self.is_annotated():
-            return Annotation(self.args[0], self._some_namespace).type
+            return Annotation(get_args(self.annotation)[0], self._some_namespace).type
 
         if self.is_generic():
             return self.origin
