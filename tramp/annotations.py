@@ -60,14 +60,22 @@ class EvaluationNamespace(Mapping[str, Any]):
 
 
 class ForwardReferenceObject:
+    def __init__(self, to):
+        self.to = to
+
     def __getattr__(self, name: str) -> Any:
         if name == "__typing_is_unpacked_typevartuple__":
             raise AttributeError(name)
 
-        return self
+        return ForwardReferenceObject(f"{self.to}.{name}")
 
-    def __call__(self, *_, **__):
-        return self
+    def __call__(self, *args, **kwargs):
+        arg_string = ", ".join(map(repr, args))
+        kwarg_string = ", ".join(f"{key}={value!r}" for key, value in kwargs.items())
+        return ForwardReferenceObject(f"{self.to}({arg_string}, {kwarg_string})")
 
-    def __getitem__(self, _):
-        return self
+    def __getitem__(self, item: Any):
+        return ForwardReferenceObject(f"{self.to}[{item!r}]")
+
+    def __repr__(self):
+        return f"<{type(self).__name__}: {self.to!r}>"
