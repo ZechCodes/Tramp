@@ -50,7 +50,7 @@ class EvaluationNamespace(Mapping[str, Any]):
         if hasattr(__builtins__, item):
             return getattr(__builtins__, item)
 
-        return ForwardReferenceObject()
+        return ForwardReferenceObject(item)
 
     def __iter__(self):
         return iter(self.namespace)

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tramp"
-version = "0.1.4"
+version = "0.1.5"
 description = "No idea but we have a result type!"
 authors = ["Zech Zimmerman <hi@zech.codes>"]
 license = "MIT"
