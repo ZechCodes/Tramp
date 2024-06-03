@@ -9,7 +9,7 @@ class OptionalException(Exception):
 
 
 class OptionalTypeCannotBeInstantiated(OptionalException):
-    """Raised when attempting to instantiate an Optional type that is not a value type."""
+    """Raised when attempting to instantiate an Optional type that is not a type of Some."""
 
 
 class OptionalHasNoValueException(OptionalException):
@@ -17,7 +17,7 @@ class OptionalHasNoValueException(OptionalException):
 
 
 class Optional(Generic[V]):
-    Value: "Type[Optional[V]]"
+    Some: "Type[Optional[V]]"
     Nothing: "Optional[V]"
 
     def __new__(cls, *_):
@@ -31,7 +31,7 @@ class Optional(Generic[V]):
     @property
     def value(self) -> V | NoReturn:
         raise OptionalHasNoValueException(
-            "You cannot Optional directly, you must use either Optional.Value or Optional.Nothing"
+            "You cannot access Optional directly, you must use either Optional.Some or Optional.Nothing"
         )
 
     def value_or(self, default: V) -> V:
@@ -41,7 +41,7 @@ class Optional(Generic[V]):
         return False
 
 
-class Value(Optional):
+class Some(Optional):
     __match_args__ = ("value",)
 
     def __init__(self, value: V):
@@ -70,5 +70,5 @@ class Nothing(Optional):
         return default
 
 
-Optional.Value = Value
+Optional.Some = Some
 Optional.Nothing = Nothing()
