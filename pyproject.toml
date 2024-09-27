@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "tramp"
-version = "0.1.9"
-description = "No idea but we have a result type!"
+version = "0.1.10"
+description = "A collection of utlities that can be used in other projects."
 authors = ["Zech Zimmerman <hi@zech.codes>"]
 license = "MIT"
 readme = "README.md"
