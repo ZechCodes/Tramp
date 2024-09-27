@@ -18,7 +18,7 @@ class OptionalHasNoValueException(OptionalException):
 
 class Optional(Generic[V]):
     Some: "Type[Optional[V]]"
-    Nothing: "Optional[V]"
+    Nothing: "Type[Optional[V]]"
 
     def __new__(cls, *_):
         if cls is Optional:
@@ -71,4 +71,4 @@ class Nothing(Optional):
 
 
 Optional.Some = Some
-Optional.Nothing = Nothing()
+Optional.Nothing = Nothing
