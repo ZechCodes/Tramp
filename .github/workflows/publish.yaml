@@ -1,4 +1,4 @@
-name: Release Tramp to PyPI
+name: Release Tramp to PyPI using Trusted Publisher
 on:
   release:
     types: [created]
