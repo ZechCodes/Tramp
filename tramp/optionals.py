@@ -1,5 +1,6 @@
 from typing import Generic, NoReturn, TypeVar, Type
 
+from tramp.singleton import singleton
 
 V = TypeVar("V")
 
@@ -55,13 +56,8 @@ class Some(Optional):
         return True
 
 
+@singleton
 class Nothing(Optional):
-    def __new__(cls, *_):
-        if not hasattr(Optional, "Nothing"):
-            return super().__new__(cls)
-
-        return Optional.Nothing
-
     @property
     def value(self) -> NoReturn:
         raise OptionalHasNoValueException("No value was set, this is Nothing")
