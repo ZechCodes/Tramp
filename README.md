@@ -1,3 +1,5 @@
+from tramp.as_completed import AsCompleted
+
 # Tramp
 
 A collection of useful utilities that can be used in any project.
@@ -11,6 +13,25 @@ pip install tramp
 ## Annotations
 
 A wrapper class to simplify accessing information about a type annotation.
+
+## As Completed
+
+The `AsCompleted` type is a wrapper around `asyncio.as_completed` that adds an async iterator over the results from each task. This simplifies iterating over tasks, eliminating the need to await the next result.
+
+```py
+from tramp.as_completed import AsCompleted
+...
+tasks = [...]
+async for result in AsCompleted(*tasks):
+    ...
+```
+
+Additionally it is possible to use `AsCompleted` in the same way that `as_completed` operates.
+
+```py
+for next_result in AsCompleted(*tasks):
+    result = await next_result
+```
 
 ## Containers
 
