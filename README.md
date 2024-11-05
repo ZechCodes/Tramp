@@ -24,7 +24,7 @@ class Foo:
     bar: "Bar"
 
 
-annotations = get_annotations(Foo, )  # {'bar': <ForwardRef 'Bar'>}
+annotations = get_annotations(Foo)  # {'bar': <ForwardRef 'Bar'>}
 
 
 class Bar:
