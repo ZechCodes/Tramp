@@ -87,7 +87,3 @@ def get_annotations(obj: Type | Callable, annotation_format: Format) -> dict[str
         name: eval(anno, {}, forward_reference_ns) if isinstance(anno, str) else anno
         for name, anno in obj.__annotations__.items()
     }
-
-
-def testing(foo: "Bar"):
-    pass
