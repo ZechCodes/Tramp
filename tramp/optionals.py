@@ -2,6 +2,7 @@ from typing import Generic, NoReturn, TypeVar, Type
 
 from tramp.singleton import singleton
 
+T = TypeVar("T")
 V = TypeVar("V")
 
 
@@ -40,6 +41,10 @@ class Optional(Generic[V]):
 
     def __bool__(self):
         return False
+
+    @classmethod
+    def wrap(cls, obj: T | None) -> "Optional[T]":
+        return cls.Nothing() if obj is None else cls.Some(obj)
 
 
 class Some(Optional):
