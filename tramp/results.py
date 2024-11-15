@@ -19,32 +19,45 @@ class ResultWasNeverSetException(ResultException):
     """Raised when a result is never given a value and no errors were raised."""
 
 
-class ResultBuilder(Generic[V]):
+class _ResultBuilder(Generic[V]):
     def __init__(self):
-        self._result: Result[V] | None = None
+        self._value = None
+        self._error = None
 
-    def __enter__(self):
+    @property
+    def value(self) -> V:
+        return self._value
+
+    @value.setter
+    def value(self, value: V):
+        self._value = value
+
+    @property
+    def error(self) -> Exception:
+        return self._error
+
+    def __enter__(self) -> "_ResultBuilder[V] | Result[V]":
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            self._result = Result.Error(exc_val)
+            self.__class__ = Error
+            self.__init__(exc_val)
+            return True
 
-        elif self._result is None:
-            raise ResultWasNeverSetException("No value was ever set on the result.")
+        if self._value is None and self._error is None:
+            with _ResultBuilder() as r:
+                raise ResultWasNeverSetException("No result was ever set.")
 
-        return True
+            self.__class__ = Error
+            self.__init__(r.error)
+            return True
 
-    @property
-    def result(self) -> "Result[V] | NoReturn":
-        return self._result
-
-    def set(self, value: V):
-        self._result = Result.Value(value)
+        self.__class__ = Value
 
 
 class Result(Generic[V]):
-    Value: "Type[Result[V]]"
+    Value: "Type[Value[V]]"
     Error: "Type[Error[V]]"
 
     def __new__(cls, *_):
@@ -62,6 +75,7 @@ class Result(Generic[V]):
     def value(self) -> V | NoReturn:
         raise RuntimeError
 
+    @property
     def error(self) -> Exception | None:
         return
 
@@ -69,8 +83,8 @@ class Result(Generic[V]):
         pass
 
     @classmethod
-    def build(cls) -> ResultBuilder[V]:
-        return ResultBuilder()
+    def build(cls) -> _ResultBuilder[V]:
+        return _ResultBuilder()
 
 
 class Value(Result[V]):
