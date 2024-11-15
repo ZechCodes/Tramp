@@ -62,16 +62,18 @@ for next_result in AsCompleted(*tasks):
 
 ## Containers
 
-A container acts a reference to a changable value.
+A container acts a reference to a changeable value.
 
 ```python
-from tramp import Container
+from tramp.containers import Container
 
 container = Container[int](0)
 container.set(1)
 
 print(container.value)  # 1
 ```
+
+An empty container can also be created. Attempting to access the value raises a `ValueError`. The error can be avoided by using the `value_or` method or by checking the `never_set` boolean property.
 
 ## Modules
 
@@ -135,7 +137,7 @@ A result type that can be used with match statements. Works the same as Optional
 from tramp.results import Result
 
 with Result.build() as result:
-    result.set(1)
+    result.value = 1
 
 print(result.value) # 1
 print(result.error) # None
