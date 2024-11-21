@@ -60,6 +60,22 @@ for next_result in AsCompleted(*tasks):
     result = await next_result
 ```
 
+## Async Batch Iterators
+
+The `AsyncBatchIterator` type is an async iterator that yields results one at a time from batches. It takes a coroutine that returns batches at a batch index. The coroutine can return either a `Iterable` or an `AsyncIterable`. If the coroutine returns `None` or an empty batch, the batched iterator stops.
+
+```py
+async def get_batch(batch_index: int) -> Iterable[int] | None:
+    if batch_index > 1:
+        return
+    
+    return range(batch_index * 2, (batch_index + 1) * 2)
+    
+async def main():
+    async for result in AsyncBatchIterator(get_batch):
+        print(result)
+```
+
 ## Containers
 
 A container acts a reference to a changeable value.
