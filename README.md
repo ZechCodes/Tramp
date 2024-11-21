@@ -145,6 +145,39 @@ match foo(-1):
 # Output: Nothing
 ```
 
+## Protected Strings
+
+A protected string type that can be used to store sensitive information. The string is redacted when rendered into a string. The value can be accessed using the `value` property.
+
+```python
+from tramp.protected_strings import ProtectedString
+
+password = ProtectedString("password", name="password")
+print(password)  # <Redacted>
+
+print(f"Password: {password}")  # Password: <Redacted>
+print(f"Password: {password.value}")  # Password: password
+print(f"Password: {password:***}")  # Password: ***
+print(f"Password: {password:***$password}")  # Password: password
+print(f"Password: {password:$password}")  # Password: password
+```
+
+`ProtectedString`s can be combined with other strings to create a `ProtectedStringBuilder` which can combine and format multiple protected strings with each other and normal strings.
+
+```python
+from tramp.protected_strings import ProtectedString
+
+foo = ProtectedString("Hello", name="foo")
+bar = ProtectedString("World", name="bar")
+builder = foo + " " + bar + "!!!"
+print(f"{builder}")  # <Redacted Foo> <Redacted Bar>!!!
+print(f"{builder:***}")  # *** ***!!!
+print(f"{builder:$foo}")  # Hello <Redacted Bar>!!!
+print(f"{builder:***$foo}")  # Hello ***!!!
+print(f"{builder:$foo,bar}")  # Hello World!!!
+print(f"{builder:***$foo,bar}")  # Hello World!!!
+```
+
 ## Results
 
 A result type that can be used with match statements. Works the same as Optionals with an added `error` property.
