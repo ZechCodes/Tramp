@@ -1,19 +1,14 @@
-[tool.poetry]
+[project]
 name = "tramp"
-version = "0.1.17"
+version = "2025.3.001"
 description = "A collection of utlities that can be used in other projects."
 authors = ["Zech Zimmerman <hi@zech.codes>"]
 license = "MIT"
 readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
 
-[tool.poetry.dependencies]
-python = "^3.10"
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.3"
-pytest-asyncio = "^0.24.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
