@@ -48,7 +48,11 @@ def test_awaitable():
     async def foo():
         pass
 
-    assert isinstance(foo(), Awaitable)
+    coro = foo()
+    try:
+        assert isinstance(coro, Awaitable)
+    finally:
+        coro.close()  # Clean up the coroutine to avoid warning
 
 
 def test_callable():
