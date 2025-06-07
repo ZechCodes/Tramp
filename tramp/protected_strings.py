@@ -15,10 +15,35 @@ class ContainsProtocol(Protocol):
 
 
 class ProtectedString:
+    """A string that can be selectively revealed in formatted output.
+    
+    Args:
+        value: The protected string value
+        name: Optional identifier for selective revelation (should be a valid Python identifier)
+        hide_name: If True, don't show the name in the repr output
+        
+    Note:
+        Names should be valid Python identifiers for best compatibility with format specs.
+        Names with spaces or special characters will be title-cased in repr but may not
+        work properly in format specifications.
+        
+        Format specification matching is case-sensitive: ProtectedString("x", "MyName") 
+        will only match "$MyName", not "$myname" or "$MYNAME".
+    """
     def __init__(self, value: str, name: str = "", *, hide_name: bool = False):
         self.value = value
         self.name = name
         self.hide_name = hide_name
+        
+        # Warn about potentially problematic names but don't enforce
+        if name and not name.isidentifier():
+            import warnings
+            warnings.warn(
+                f"Name '{name}' is not a valid Python identifier. "
+                f"It may not work properly in format specifications.",
+                UserWarning,
+                stacklevel=2
+            )
 
     def __add__(self, other) -> "ProtectedStringBuilder":
         match other:
@@ -112,12 +137,10 @@ class ProtectedStringBuilder:
     def __add__(self, other):
         match other:
             case ProtectedString() | str():
-                self.add(other)
-                return self
+                return ProtectedStringBuilder(*self.strings, other)
 
             case ProtectedStringBuilder():
-                self.strings.extend(other.strings)
-                return self
+                return ProtectedStringBuilder(*self.strings, *other.strings)
 
             case _:
                 return NotImplemented
@@ -131,18 +154,35 @@ class ProtectedStringBuilder:
                 return NotImplemented
 
     def __iadd__(self, other):
-        return self + other
+        # Keep mutating behavior for += operator
+        match other:
+            case ProtectedString() | str():
+                self.add(other)
+                return self
+
+            case ProtectedStringBuilder():
+                self.strings.extend(other.strings)
+                return self
+
+            case _:
+                return NotImplemented
 
     def __format__(self, format_spec):
         redact_with, sep, allowed_names = format_spec.partition("$")
         allowed = lambda _: False
 
         if sep and not allowed_names:
-            raise FormatError("No allowed names provided.")
+            raise FormatError("Format spec '$' requires allowed names.")
 
-        filtered_names = set(name for name in allowed_names.split(",") if name.strip())
-        if not all(name.isidentifier() for name in filtered_names):
-            raise FormatError("Allowed names provided.")
+        filtered_names = set(name.strip() for name in allowed_names.split(",") if name.strip())
+        
+        if not filtered_names and allowed_names:
+            raise FormatError("No valid names provided after filtering.")
+        
+        # Check for invalid identifiers and provide specific error messages
+        invalid_names = [name for name in filtered_names if not name.isidentifier()]
+        if invalid_names:
+            raise FormatError(f"Invalid identifier(s) in allowed names: {', '.join(invalid_names)}")
 
         if allowed_names:
             allowed = lambda s: s.name in filtered_names
