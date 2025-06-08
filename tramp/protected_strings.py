@@ -1,5 +1,5 @@
 from mailbox import FormatError
-from typing import Callable, Iterable, overload, Protocol, runtime_checkable
+from typing import Callable, Iterable, overload, Protocol, runtime_checkable, Union
 
 
 @runtime_checkable
@@ -29,6 +29,10 @@ class ProtectedString:
         
         Format specification matching is case-sensitive: ProtectedString("x", "MyName") 
         will only match "$MyName", not "$myname" or "$MYNAME".
+        
+        Type Behavior:
+        Both + and += operators return ProtectedStringBuilder, not ProtectedString.
+        This means: ps += "text" changes the type of ps to ProtectedStringBuilder.
     """
     def __init__(self, value: str, name: str = "", *, hide_name: bool = False):
         self.value = value

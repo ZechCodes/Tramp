@@ -189,3 +189,23 @@ def test_case_sensitivity():
     assert f"{ps:$myname}" == "<Redacted Myname>"
     assert f"{ps:$MYNAME}" == "<Redacted Myname>"
     assert f"{ps:$mynAme}" == "<Redacted Myname>"
+
+
+def test_typing_behavior():
+    """Test the documented typing behavior."""
+    from tramp.protected_strings import ProtectedStringBuilder
+    
+    ps = ProtectedString("secret", "name")
+    
+    # + operator returns ProtectedStringBuilder
+    result = ps + "text"
+    assert isinstance(result, ProtectedStringBuilder)
+    assert not isinstance(result, ProtectedString)
+    
+    # Chain operations work
+    result2 = ps + "text" + "more"
+    assert isinstance(result2, ProtectedStringBuilder)
+    
+    # The original ProtectedString is unchanged
+    assert isinstance(ps, ProtectedString)
+    assert not isinstance(ps, ProtectedStringBuilder)
