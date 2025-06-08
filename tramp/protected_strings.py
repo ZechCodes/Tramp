@@ -31,8 +31,15 @@ class ProtectedString:
         will only match "$MyName", not "$myname" or "$MYNAME".
         
         Type Behavior:
-        Both + and += operators return ProtectedStringBuilder, not ProtectedString.
-        This means: ps += "text" changes the type of ps to ProtectedStringBuilder.
+        Both + and += operators return ProtectedStringBuilder, which inherits from 
+        ProtectedString. This ensures consistent behavior in pattern matching:
+        
+        >>> ps = ProtectedString("secret")
+        >>> builder = ps + "text"
+        >>> isinstance(builder, ProtectedString)  # True - works in match/case
+        True
+        >>> isinstance(builder, ProtectedStringBuilder)  # True - is also a builder
+        True
     """
     def __init__(self, value: str, name: str = "", *, hide_name: bool = False):
         self.value = value
@@ -94,9 +101,14 @@ class ProtectedString:
         return builder.render(redact_with, allowed=allowed)
 
 
-class ProtectedStringBuilder:
+class ProtectedStringBuilder(ProtectedString):
     def __init__(self, *strings: str | ProtectedString):
+        # Don't call super().__init__ as we override the behavior
         self.strings = list(strings)
+        # Set attributes that ProtectedString expects but we don't use
+        self._value = ""  # Placeholder - we override with property
+        self.name = ""
+        self.hide_name = False
 
     @overload
     def add(self, string: str | ProtectedString):
@@ -140,11 +152,11 @@ class ProtectedStringBuilder:
 
     def __add__(self, other):
         match other:
-            case ProtectedString() | str():
-                return ProtectedStringBuilder(*self.strings, other)
-
             case ProtectedStringBuilder():
                 return ProtectedStringBuilder(*self.strings, *other.strings)
+                
+            case ProtectedString() | str():
+                return ProtectedStringBuilder(*self.strings, other)
 
             case _:
                 return NotImplemented
@@ -160,12 +172,12 @@ class ProtectedStringBuilder:
     def __iadd__(self, other):
         # Keep mutating behavior for += operator
         match other:
-            case ProtectedString() | str():
-                self.add(other)
-                return self
-
             case ProtectedStringBuilder():
                 self.strings.extend(other.strings)
+                return self
+                
+            case ProtectedString() | str():
+                self.add(other)
                 return self
 
             case _:
@@ -192,3 +204,21 @@ class ProtectedStringBuilder:
             allowed = lambda s: s.name in filtered_names
 
         return self.render(redact_with or None, allowed=allowed)
+    
+    def __repr__(self):
+        # Use the first ProtectedString's repr if available, otherwise generic
+        for item in self.strings:
+            if isinstance(item, ProtectedString):
+                return repr(item)
+        return "<Redacted>"
+    
+    @property
+    def value(self):
+        """Return the actual concatenated value (not redacted)."""
+        result = ""
+        for item in self.strings:
+            if isinstance(item, ProtectedString):
+                result += item.value
+            else:
+                result += str(item)
+        return result

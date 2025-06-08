@@ -197,15 +197,38 @@ def test_typing_behavior():
     
     ps = ProtectedString("secret", "name")
     
-    # + operator returns ProtectedStringBuilder
+    # + operator returns ProtectedStringBuilder which is also a ProtectedString
     result = ps + "text"
     assert isinstance(result, ProtectedStringBuilder)
-    assert not isinstance(result, ProtectedString)
+    assert isinstance(result, ProtectedString)  # ProtectedStringBuilder inherits from ProtectedString
     
     # Chain operations work
     result2 = ps + "text" + "more"
     assert isinstance(result2, ProtectedStringBuilder)
+    assert isinstance(result2, ProtectedString)
     
-    # The original ProtectedString is unchanged
+    # The original ProtectedString is unchanged and is NOT a builder
     assert isinstance(ps, ProtectedString)
     assert not isinstance(ps, ProtectedStringBuilder)
+
+
+def test_pattern_matching_consistency():
+    """Test that pattern matching works consistently for ProtectedString and ProtectedStringBuilder."""
+    
+    def process_secret(secret):
+        match secret:
+            case ProtectedString():
+                return secret.value
+            case _:
+                return None
+    
+    ps = ProtectedString("secret", "name")
+    builder = ps + ""  # Creates ProtectedStringBuilder
+    
+    # Both should match ProtectedString() pattern
+    assert process_secret(ps) == "secret"
+    assert process_secret(builder) == "secret"
+    
+    # Both should be instances of ProtectedString for pattern matching
+    assert isinstance(ps, ProtectedString)
+    assert isinstance(builder, ProtectedString)
