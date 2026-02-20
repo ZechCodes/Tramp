@@ -1,8 +1,6 @@
-from mailbox import FormatError
-
 import pytest
 
-from tramp.protected_strings import ProtectedString
+from tramp.protected_strings import ProtectedString, ProtectedStringFormatError
 
 
 def test_repr():
@@ -55,13 +53,13 @@ def test_join():
 
 
 def test_valid_format_spec():
-    with pytest.raises(FormatError, match="Invalid identifier"):
+    with pytest.raises(ProtectedStringFormatError, match="Invalid identifier"):
         f"{ProtectedString('value'):$^}"
 
-    with pytest.raises(FormatError, match="requires allowed names"):
+    with pytest.raises(ProtectedStringFormatError, match="requires allowed names"):
         f"{ProtectedString('value'):$}"
 
-    with pytest.raises(FormatError, match="requires allowed names"):
+    with pytest.raises(ProtectedStringFormatError, match="requires allowed names"):
         f"{ProtectedString('value'):***$}"
 
 
@@ -111,15 +109,15 @@ def test_improved_error_messages():
     ps = ProtectedString("secret", "test")
     
     # Test invalid identifier
-    with pytest.raises(FormatError, match="Invalid identifier.*123invalid"):
+    with pytest.raises(ProtectedStringFormatError, match="Invalid identifier.*123invalid"):
         f"{ps:$123invalid}"
     
     # Test empty names after filtering
-    with pytest.raises(FormatError, match="No valid names provided"):
+    with pytest.raises(ProtectedStringFormatError, match="No valid names provided"):
         f"{ps:$   }"
     
     # Test format spec without names
-    with pytest.raises(FormatError, match="requires allowed names"):
+    with pytest.raises(ProtectedStringFormatError, match="requires allowed names"):
         f"{ps:$}"
 
 

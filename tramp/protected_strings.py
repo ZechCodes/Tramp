@@ -1,5 +1,8 @@
-from mailbox import FormatError
 from typing import Callable, Iterable, overload, Protocol, runtime_checkable, Union
+
+
+class ProtectedStringFormatError(Exception):
+    """Raised when a ProtectedString format specification is invalid."""
 
 
 @runtime_checkable
@@ -188,17 +191,17 @@ class ProtectedStringBuilder(ProtectedString):
         allowed = lambda _: False
 
         if sep and not allowed_names:
-            raise FormatError("Format spec '$' requires allowed names.")
+            raise ProtectedStringFormatError("Format spec '$' requires allowed names.")
 
         filtered_names = set(name.strip() for name in allowed_names.split(",") if name.strip())
         
         if not filtered_names and allowed_names:
-            raise FormatError("No valid names provided after filtering.")
+            raise ProtectedStringFormatError("No valid names provided after filtering.")
         
         # Check for invalid identifiers and provide specific error messages
         invalid_names = [name for name in filtered_names if not name.isidentifier()]
         if invalid_names:
-            raise FormatError(f"Invalid identifier(s) in allowed names: {', '.join(invalid_names)}")
+            raise ProtectedStringFormatError(f"Invalid identifier(s) in allowed names: {', '.join(invalid_names)}")
 
         if allowed_names:
             allowed = lambda s: s.name in filtered_names
