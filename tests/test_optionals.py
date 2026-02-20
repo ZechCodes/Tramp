@@ -114,3 +114,50 @@ def test_wrap_various_types():
     assert isinstance(Optional.wrap([]), Some)
     assert isinstance(Optional.wrap(False), Some)
     assert isinstance(Optional.wrap(None), Nothing)
+
+
+def test_construct_via_optional_namespace():
+    some = Optional.Some(42)
+    assert some.value == 42
+
+    nothing = Optional.Nothing()
+    with pytest.raises(OptionalHasNoValueException):
+        _ = nothing.value
+
+
+def test_readme_wrap_and_match_example():
+    result = Optional.wrap(42)
+    match result:
+        case Optional.Some(x):
+            assert x == 42
+        case _:
+            pytest.fail("Should match Optional.Some")
+
+    result_none = Optional.wrap(None)
+    match result_none:
+        case Optional.Nothing():
+            pass
+        case _:
+            pytest.fail("Should match Optional.Nothing")
+
+
+def test_some_wrapping_none():
+    some = Some(None)
+    assert some.value is None
+    assert bool(some) is True
+    assert some.value_or(42) is None
+
+
+def test_some_wrapping_some_and_nothing():
+    nested_some = Some(Some(42))
+    assert isinstance(nested_some.value, Some)
+    assert nested_some.value.value == 42
+
+    some_nothing = Some(Nothing())
+    assert isinstance(some_nothing.value, Nothing)
+
+
+def test_some_value_or_with_falsy_wrapped_value():
+    assert Some(0).value_or(99) == 0
+    assert Some(False).value_or(True) is False
+    assert Some("").value_or("default") == ""

@@ -136,3 +136,81 @@ def test_value_truthiness():
 def test_error_truthiness():
     assert not Error(ValueError("test"))
     assert not Error(RuntimeError("test"))
+
+
+def test_value_value_or():
+    assert Value(42).value_or(0) == 42
+
+
+def test_readme_build_and_match_example():
+    with Result.build() as result:
+        result.value = 42
+
+    match result:
+        case Result.Value(v):
+            assert v == 42
+        case _:
+            pytest.fail("Should match Result.Value")
+
+    with Result.build() as err_result:
+        raise ValueError("oops")
+
+    match err_result:
+        case Result.Error(e):
+            assert isinstance(e, ValueError)
+        case _:
+            pytest.fail("Should match Result.Error")
+
+
+def test_result_build_with_none_value():
+    with Result.build() as result:
+        result.value = None
+
+    assert isinstance(result, Value)
+    assert result.value is None
+
+
+def test_result_build_with_falsy_values():
+    for falsy in (0, False, ""):
+        with Result.build() as result:
+            result.value = falsy
+
+        assert isinstance(result, Value)
+        assert result.value == falsy
+
+
+def test_error_value_exception_chaining():
+    original = ValueError("original")
+    error_result = Error(original)
+
+    with pytest.raises(ResultWasAnErrorException) as exc_info:
+        _ = error_result.value
+
+    assert exc_info.value.__cause__ is original
+
+
+def test_value_none_access():
+    v = Value(None)
+    assert v.value is None
+
+
+def test_value_value_or_with_falsy():
+    assert Value(0).value_or(99) == 0
+    assert Value(False).value_or(True) is False
+    assert Value("").value_or("default") == ""
+
+
+def test_result_build_value_then_exception():
+    """When value is set but then an exception is raised, Error wins."""
+    with Result.build() as result:
+        result.value = 42
+        raise RuntimeError("oops")
+
+    assert isinstance(result, Error)
+    assert isinstance(result.error, RuntimeError)
+
+
+def test_base_result_value_raises():
+    v = Value(42)
+    with pytest.raises(RuntimeError):
+        Result.value.fget(v)

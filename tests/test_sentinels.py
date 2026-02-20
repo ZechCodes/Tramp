@@ -1,3 +1,5 @@
+import pytest
+
 from tramp.sentinels import Sentinel, SentinelMCS, sentinel
 
 
@@ -91,3 +93,37 @@ def test_sentinel_uniqueness():
     other = OtherSentinel()
     
     assert s is not other
+
+
+def test_readme_default_parameter_pattern():
+    NotSet = sentinel("NotSet")
+
+    def get(key: str, default=NotSet()):
+        if default is NotSet():
+            raise KeyError(key)
+        return default
+
+    with pytest.raises(KeyError):
+        get("missing")
+
+    assert get("key", 42) == 42
+
+
+def test_same_name_different_sentinels():
+    """sentinel() with the same name creates distinct types."""
+    S1 = sentinel("Same")
+    S2 = sentinel("Same")
+
+    assert S1 is not S2
+
+
+def test_sentinel_as_dict_key():
+    S = sentinel("Key")
+    d = {S(): "value"}
+    assert d[S()] == "value"
+
+
+def test_sentinel_in_set():
+    S = sentinel("SetItem")
+    s = {S(), S(), S()}
+    assert len(s) == 1

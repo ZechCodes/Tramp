@@ -230,3 +230,104 @@ def test_pattern_matching_consistency():
     # Both should be instances of ProtectedString for pattern matching
     assert isinstance(ps, ProtectedString)
     assert isinstance(builder, ProtectedString)
+
+
+def test_protected_string_add_unsupported_type():
+    ps = ProtectedString("secret", "s")
+    with pytest.raises(TypeError):
+        ps + 42
+
+
+def test_protected_string_radd_unsupported_type():
+    ps = ProtectedString("secret", "s")
+    with pytest.raises(TypeError):
+        42 + ps
+
+
+def test_protected_string_iadd_unsupported_type():
+    ps = ProtectedString("secret", "s")
+    with pytest.raises(TypeError):
+        ps += 42
+
+
+def test_builder_add_unsupported_type():
+    builder = ProtectedString("a", "a") + "b"
+    with pytest.raises(TypeError):
+        builder + 42
+
+
+def test_builder_radd_unsupported_type():
+    builder = ProtectedString("a", "a") + "b"
+    with pytest.raises(TypeError):
+        42 + builder
+
+
+def test_builder_iadd_unsupported_type():
+    builder = ProtectedString("a", "a") + "b"
+    with pytest.raises(TypeError):
+        builder += 42
+
+
+def test_builder_iadd_with_another_builder():
+    from tramp.protected_strings import ProtectedStringBuilder
+
+    builder1 = ProtectedString("a", "a") + "b"
+    builder2 = ProtectedString("c", "c") + "d"
+    original_id = id(builder1)
+
+    builder1 += builder2
+
+    assert id(builder1) == original_id
+    assert len(builder1.strings) == 4
+    assert f"{builder1:$a,c}" == "abcd"
+
+
+def test_builder_add_method_with_name():
+    from tramp.protected_strings import ProtectedStringBuilder
+
+    builder = ProtectedStringBuilder()
+    builder.add("secret_value", name="key")
+    assert len(builder.strings) == 1
+    assert isinstance(builder.strings[0], ProtectedString)
+    assert f"{builder}" == "<Redacted Key>"
+    assert f"{builder:$key}" == "secret_value"
+
+
+def test_builder_add_method_with_hide_name():
+    from tramp.protected_strings import ProtectedStringBuilder
+
+    builder = ProtectedStringBuilder()
+    builder.add("secret", name="hidden", hide_name=True)
+    assert f"{builder}" == "<Redacted>"
+    assert f"{builder:$hidden}" == "secret"
+
+
+def test_builder_repr_all_plain_strings():
+    from tramp.protected_strings import ProtectedStringBuilder
+
+    builder = ProtectedStringBuilder("plain1", "plain2")
+    assert repr(builder) == "<Redacted>"
+
+
+def test_builder_value_with_mixed_types():
+    from tramp.protected_strings import ProtectedStringBuilder
+
+    ps1 = ProtectedString("secret1", "s1")
+    ps2 = ProtectedString("secret2", "s2")
+    builder = ps1 + "plain" + ps2
+    assert builder.value == "secret1plainsecret2"
+
+
+def test_readme_single_string_example():
+    token = ProtectedString("sk-abc123", name="token")
+    assert f"{token}" == "<Redacted Token>"
+    assert f"{token:$token}" == "sk-abc123"
+    assert f"{token:***}" == "***"
+    assert f"{token:***$token}" == "sk-abc123"
+
+
+def test_readme_builder_example():
+    token = ProtectedString("sk-abc123", name="token")
+    builder = ProtectedString("user", name="user") + ":" + token
+    assert f"{builder}" == "<Redacted User>:<Redacted Token>"
+    assert f"{builder:$user,token}" == "user:sk-abc123"

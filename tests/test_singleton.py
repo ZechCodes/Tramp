@@ -129,3 +129,31 @@ def test_singleton_decorated_inheritance():
     assert base1 is base2
     assert derived1 is derived2
     assert base1 is not derived1
+
+
+def test_readme_example():
+    @singleton
+    class Config:
+        def __init__(self):
+            self.debug = False
+
+    a = Config()
+    b = Config()
+    assert a is b
+
+
+def test_singleton_init_reinvoked_on_cached_instance():
+    """__init__ is called again on subsequent instantiations, which can mutate state."""
+    @singleton
+    class Counter:
+        def __init__(self):
+            if not hasattr(self, "count"):
+                self.count = 0
+            self.count += 1
+
+    a = Counter()
+    assert a.count == 1
+
+    b = Counter()
+    assert a is b
+    assert a.count == 2  # __init__ was called again on the same instance

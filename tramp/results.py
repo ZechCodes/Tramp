@@ -23,6 +23,7 @@ class _ResultBuilder(Generic[V]):
     def __init__(self):
         self._value = None
         self._error = None
+        self._value_set = False
 
     @property
     def value(self) -> V:
@@ -31,6 +32,7 @@ class _ResultBuilder(Generic[V]):
     @value.setter
     def value(self, value: V):
         self._value = value
+        self._value_set = True
 
     @property
     def error(self) -> Exception:
@@ -45,7 +47,7 @@ class _ResultBuilder(Generic[V]):
             self.__init__(exc_val)
             return True
 
-        if self._value is None and self._error is None:
+        if not self._value_set and self._error is None:
             with _ResultBuilder() as r:
                 raise ResultWasNeverSetException("No result was ever set.")
 
@@ -101,6 +103,9 @@ class Value(Result[V]):
 
     @property
     def value(self) -> V:
+        return self._value
+
+    def value_or(self, default: V) -> V:
         return self._value
 
 
