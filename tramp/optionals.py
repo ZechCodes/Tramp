@@ -57,6 +57,9 @@ class Some(Optional):
     def value(self) -> V:
         return self._value
 
+    def __repr__(self):
+        return f"{Optional.__name__}.{type(self).__name__}({self._value!r})"
+
     def __bool__(self):
         return True
 
@@ -66,6 +69,9 @@ class Nothing(Optional):
     @property
     def value(self) -> NoReturn:
         raise OptionalHasNoValueException("No value was set, this is Nothing")
+
+    def __repr__(self):
+        return f"{Optional.__name__}.{type(self).__name__}()"
 
     def value_or(self, default: V) -> V:
         return default
