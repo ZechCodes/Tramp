@@ -167,7 +167,7 @@ class AsyncBatchIterator(Generic[T]):
             raise ValueError("Preload requires a batch index")
 
         self._get_batch = get_batch
-        self._batch: MaybeAsyncIterator = preload if preload is not None else _NullIterator()
+        self._batch: MaybeAsyncIterator = _get_iterator(preload) if preload is not None else _NullIterator()
         self._index = 0 if index is None else index
 
     def __aiter__(self):
@@ -215,7 +215,7 @@ class AsyncBatchIterator(Generic[T]):
             try:
                 return await anext(self)
             except StopAsyncIteration:
-                raise ValueError("N`o results to return")
+                raise ValueError("No results to return")
 
         try:
             return await anext(self)
