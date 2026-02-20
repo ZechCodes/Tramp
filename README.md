@@ -1,218 +1,181 @@
-from tramp.as_completed import AsCompleted
-
 # Tramp
 
-A collection of useful utilities that can be used in any project.
+[![PyPI](https://img.shields.io/pypi/v/tramp)](https://pypi.org/project/tramp/)
+[![Python](https://img.shields.io/pypi/pyversions/tramp)](https://pypi.org/project/tramp/)
+[![License](https://img.shields.io/pypi/l/tramp)](https://github.com/ZechCodes/Tramp/blob/main/LICENSE)
+[![CI](https://github.com/ZechCodes/Tramp/actions/workflows/ci.yaml/badge.svg)](https://github.com/ZechCodes/Tramp/actions/workflows/ci.yaml)
+
+A collection of useful Python utilities for annotations, async iteration, containers, optionals, protected strings, results, sentinels, and singletons.
 
 ## Installation
 
-```python
+```
 pip install tramp
 ```
 
 ## Annotations
 
-A utility for evaluating string annotations with support for forward references when a name cannot be evaluated. Forward references can be evaluated later by calling the forward reference's `evaluate` method. This is a similar API to [PEP 649](https://peps.python.org/pep-0649/), although it is not fully compatible and only emulates the behavior of `Format.FORWARDREF`. Certain things are not possible (at least not without some serious hacking) such as using `ForwardRef` instances as that would break many annotation types from the `typing` module. To help with this limitation the `tramp.annotations.ForwardRefMeta` type overrides the `isinstance` check to return `True` when Tramp's version of the `ForwardRef` class is used in an instance check (`isinstance` or a match/case). The goal is to implement the most essential parts of the PEP to begin reaping the benefits of forward references now with the least necessary refactoring later.
+Forward-reference-aware annotation evaluation. On Python < 3.14 it provides a [PEP 649](https://peps.python.org/pep-0649/)-style API for resolving string annotations into `ForwardRef` objects that can be evaluated later. On Python 3.14+ it falls through to the stdlib `annotationlib`.
 
-On Python 3.14 Tramp falls through to the PEP 649 implementation.
+- `get_annotations(obj, *, format=Format.FORWARDREF)` — evaluate annotations on a class, function, or module
+- `ForwardRef` — a lazy reference that resolves when `.evaluate()` is called
+- `Format` — enum selecting evaluation mode (`FORWARDREF`, `VALUE`, `STRING`)
 
 ```python
 from tramp.annotations import get_annotations
 
-
 class Foo:
     bar: "Bar"
 
-
 annotations = get_annotations(Foo)  # {'bar': <ForwardRef 'Bar'>}
-
 
 class Bar:
     pass
 
-
 annotations["bar"].evaluate()  # <class '__main__.Bar'>
 ```
-It supports generic types, metadata, function calls/class instantiation, etc.
+
+## Async Batch Iterator
+
+An async iterator that pages through batches, yielding items one at a time. Accepts a coroutine that returns an `Iterable`, `AsyncIterable`, or `None` (to signal completion) for each batch index.
+
+- `AsyncBatchIterator[T](get_batch)` — create an iterator from a batch-fetching coroutine
+- `.get(*, limit=None)` — collect all (or up to `limit`) results into a list
+- `.one(*, default=)` — return a single result, or `default` / raise if empty
+
 ```python
-class Foo:
-    bar: "list[int]"
-    baz: "Callable[[int], str]"
-    qux: "Annotated[int, Bar('baz')]"
-```
+from tramp.async_batch_iterator import AsyncBatchIterator
 
-## As Completed
+async def get_batch(index: int) -> list[int] | None:
+    if index > 1:
+        return None
+    return list(range(index * 2, (index + 1) * 2))
 
-The `AsCompleted` type is a wrapper around `asyncio.as_completed` that adds an async iterator over the results from each task. This simplifies iterating over tasks, eliminating the need to await the next result.
-
-```py
-from tramp.as_completed import AsCompleted
-...
-tasks = [...]
-async for result in AsCompleted(*tasks):
-    ...
-```
-
-Additionally it is possible to use `AsCompleted` in the same way that `as_completed` operates.
-
-```py
-for next_result in AsCompleted(*tasks):
-    result = await next_result
-```
-
-## Async Batch Iterators
-
-The `AsyncBatchIterator` type is an async iterator that yields results one at a time from batches. It takes a coroutine that returns batches at a batch index. The coroutine can return either a `Iterable` or an `AsyncIterable`. If the coroutine returns `None` or an empty batch, the batched iterator stops.
-
-```py
-async def get_batch(batch_index: int) -> Iterable[int] | None:
-    if batch_index > 1:
-        return
-    
-    return range(batch_index * 2, (batch_index + 1) * 2)
-    
 async def main():
-    async for result in AsyncBatchIterator(get_batch):
-        print(result)
+    async for item in AsyncBatchIterator(get_batch):
+        print(item)  # 0, 1, 2, 3
 ```
 
 ## Containers
 
-A container acts a reference to a changeable value.
+A mutable reference wrapper. Useful for sharing changeable state across functions or deferring initialization.
+
+- `Container[T](default?)` — create a container, optionally with an initial value
+- `.value` — access the stored value (raises `ValueError` if never set)
+- `.set(value)` — update the stored value
+- `.value_or(default)` — return the value or a fallback if never set
+- `.never_set` — `True` if no value has been assigned
 
 ```python
 from tramp.containers import Container
 
-container = Container[int](0)
-container.set(1)
+config = Container[str]()
+print(config.never_set)      # True
+print(config.value_or("N/A")) # N/A
 
-print(container.value)  # 1
-```
-
-An empty container can also be created. Attempting to access the value raises a `ValueError`. The error can be avoided by using the `value_or` method or by checking the `never_set` boolean property.
-
-## Modules
-
-Helper functions for working with modules
-
-```python
-from tramp import modules
-from typing import Any
-
-ns: dict[str, Any] = modules.get_module_namespace("some_module")
+config.set("production")
+print(config.value)           # production
 ```
 
 ## Optionals
 
-An optional type that can be used with match statements.
+A pattern-matchable optional type with `Some` and `Nothing` variants.
+
+- `Optional[V]` — base type (not instantiable directly)
+- `Optional.Some(value)` / `Optional.Nothing()` — construct variants
+- `.value` — unwrap or raise `OptionalHasNoValueException`
+- `.value_or(default)` — unwrap or return a fallback
+- `Optional.wrap(obj)` — convert `None` to `Nothing`, anything else to `Some`
 
 ```python
 from tramp.optionals import Optional
 
-def foo(x: int) -> Optional[int]:
-    if x > 0:
-        return Optional.Some(x)
-        
-    return Optional.Nothing()
+result = Optional.wrap(42)
 
-result = foo(1)
-print(result.value) # 1
-
-result = foo(-1)
-print(result.value) # Raises an exception
-
-result = foo(-1)
-print(result.value_or(0)) # 0
-
-...
-
-match foo(1):
+match result:
     case Optional.Some(x):
-        print(x)
-
+        print(f"Got {x}")    # Got 42
     case Optional.Nothing():
         print("Nothing")
-
-# Output: 1
-
-match foo(-1):
-    case Optional.Some(x):
-        print(x)
-
-    case Optional.Nothing():
-        print("Nothing")
-
-# Output: Nothing
 ```
 
 ## Protected Strings
 
-A protected string type that can be used to store sensitive information. The string is redacted when rendered into a string. The value can be accessed using the `value` property.
+Strings that redact themselves when rendered, with selective f-string revelation via `$name` format specs.
+
+- `ProtectedString(value, name="", *, hide_name=False)` — create a redacted string
+- `ProtectedStringBuilder` — built automatically when concatenating protected and plain strings
+- `ProtectedStringFormatError` — raised on invalid format specs
 
 ```python
 from tramp.protected_strings import ProtectedString
 
-password = ProtectedString("password", name="password")
-print(password)  # <Redacted>
+token = ProtectedString("sk-abc123", name="token")
+print(f"{token}")             # <Redacted Token>
+print(f"{token:$token}")      # sk-abc123
+print(f"{token:***}")         # ***
+print(f"{token:***$token}")   # sk-abc123
 
-print(f"Password: {password}")  # Password: <Redacted>
-print(f"Password: {password.value}")  # Password: password
-print(f"Password: {password:***}")  # Password: ***
-print(f"Password: {password:***$password}")  # Password: password
-print(f"Password: {password:$password}")  # Password: password
-```
-
-`ProtectedString`s can be combined with other strings to create a `ProtectedStringBuilder` which can combine and format multiple protected strings with each other and normal strings.
-
-```python
-from tramp.protected_strings import ProtectedString
-
-foo = ProtectedString("Hello", name="foo")
-bar = ProtectedString("World", name="bar")
-builder = foo + " " + bar + "!!!"
-print(f"{builder}")  # <Redacted Foo> <Redacted Bar>!!!
-print(f"{builder:***}")  # *** ***!!!
-print(f"{builder:$foo}")  # Hello <Redacted Bar>!!!
-print(f"{builder:***$foo}")  # Hello ***!!!
-print(f"{builder:$foo,bar}")  # Hello World!!!
-print(f"{builder:***$foo,bar}")  # Hello World!!!
+builder = ProtectedString("user", name="user") + ":" + token
+print(f"{builder}")           # <Redacted User>:<Redacted Token>
+print(f"{builder:$user,token}") # user:sk-abc123
 ```
 
 ## Results
 
-A result type that can be used with match statements. Works the same as Optionals with an added `error` property.
+A context-manager-based result type with `Value` and `Error` variants, supporting pattern matching.
+
+- `Result[V]` — base type (not instantiable directly)
+- `Result.build()` — context manager that captures exceptions into `Error`, or a set `.value` into `Value`
+- `.value` — unwrap or raise `ResultWasAnErrorException`
+- `.value_or(default)` — unwrap or return a fallback
+- `.error` — the captured exception, or `None`
 
 ```python
 from tramp.results import Result
 
 with Result.build() as result:
-    result.value = 1
+    result.value = 42
 
-print(result.value) # 1
-print(result.error) # None
-
-with Result.build() as result:
-    raise Execption("Error")
-
-print(result.value) # Raises an exception
-print(result.value_or(0)) # 0
-print(result.error) # Exception("Error")
+match result:
+    case Result.Value(v):
+        print(f"Success: {v}")  # Success: 42
+    case Result.Error(e):
+        print(f"Failed: {e}")
 ```
 
-## Sentinel
+## Sentinels
 
-A sentinel value that can be used to represent a unique value. Useful for creating `NotSet` types. Instantiating any
-sentinel type will always return the same singleton instance of that type allowing for `is` checks.
+Create singleton sentinel types for use as default-value markers or unique tokens.
+
+- `sentinel(name)` — return a new sentinel type whose instances are always the same object
 
 ```python
 from tramp.sentinels import sentinel
 
 NotSet = sentinel("NotSet")
 
+def get(key: str, default: int | NotSet = NotSet()) -> int:
+    if default is NotSet():
+        raise KeyError(key)
+    return default
+```
 
-def foo(x: int | NotSet = NotSet()) -> int:
-    if x is NotSet():
-        return 0
+## Singleton
 
-    return x
+A decorator that makes a class a singleton — all instantiations return the same object.
+
+- `@singleton` — decorate a class to enforce a single instance
+
+```python
+from tramp.singleton import singleton
+
+@singleton
+class Config:
+    def __init__(self):
+        self.debug = False
+
+a = Config()
+b = Config()
+assert a is b  # True
 ```
